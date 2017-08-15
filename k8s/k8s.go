@@ -3,10 +3,10 @@ package k8s
 import (
 	"time"
 
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api/v1"
-	selector "k8s.io/client-go/pkg/fields"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 )
@@ -23,7 +23,7 @@ type Client struct {
 
 // Returns a cache.ListWatch that gets all changes to pods.
 func (k8s *Client) createPodLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, selector.Everything())
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fields.Everything())
 }
 
 // WatchForPods watches for pod changes.
@@ -40,7 +40,7 @@ func (k8s *Client) WatchForPods(podManager cache.ResourceEventHandler) cache.Sto
 
 // returns a cache.ListWatch of namespaces.
 func (k8s *Client) createNamespaceLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, selector.Everything())
+	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, fields.Everything())
 }
 
 // WatchForNamespaces watches for namespaces changes.
@@ -63,7 +63,9 @@ func NewClient(host, token string, insecure bool) (*Client, error) {
 		config = &rest.Config{
 			Host:        host,
 			BearerToken: token,
-			Insecure:    insecure,
+			TLSClientConfig: rest.TLSClientConfig{
+				Insecure: insecure,
+			},
 		}
 	} else {
 		config, err = rest.InClusterConfig()
