@@ -14,10 +14,6 @@ import:
 - package: k8s.io/apimachinery
 - package: k8s.io/client-go
   version: v2.0.0
-  subpackages:
-  - pkg/api/v1
-  - kubernetes
-  - rest
 - package: github.com/cenk/backoff
 - package: github.com/coreos/go-iptables
   version: v0.1.0
