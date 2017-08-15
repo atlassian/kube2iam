@@ -9,8 +9,8 @@ BUILD_DATE := $$(date +%Y-%m-%d-%H:%M)
 GIT_HASH := $$(git rev-parse --short HEAD)
 GOBUILD_VERSION_ARGS := -ldflags "-s -X $(VERSION_VAR)=$(REPO_VERSION) -X $(GIT_VAR)=$(GIT_HASH) -X $(BUILD_DATE_VAR)=$(BUILD_DATE)"
 # useful for other docker repos
-DOCKER_REPO ?= jtblin
-IMAGE_NAME := $(DOCKER_REPO)/$(BINARY_NAME)
+DOCKER_REPO ?= kitt
+IMAGE_NAME := docker.atlassian.io/$(DOCKER_REPO)/$(BINARY_NAME)
 ARCH ?= darwin
 METALINTER_CONCURRENCY ?= 4
 METALINTER_DEADLINE ?= 180
@@ -18,13 +18,13 @@ METALINTER_DEADLINE ?= 180
 DOCKER_BUILD_FLAGS := 
 
 setup:
-	go get -v -u github.com/Masterminds/glide
-	go get -v -u github.com/githubnemo/CompileDaemon
-	go get -v -u github.com/alecthomas/gometalinter
-	go get -v -u github.com/jstemmer/go-junit-report
-	go get -v github.com/mattn/goveralls
+	go get github.com/golang/dep/cmd/dep
+	go get github.com/Masterminds/glide
+	go get github.com/alecthomas/gometalinter
+	go get github.com/jstemmer/go-junit-report
+	go get github.com/mattn/goveralls
 	gometalinter --install --update
-	glide install --strip-vendor
+	dep ensure
 
 build: *.go fmt
 	go build -o build/bin/$(ARCH)/$(BINARY_NAME) $(GOBUILD_VERSION_ARGS) github.com/jtblin/$(BINARY_NAME)/cmd
@@ -86,7 +86,7 @@ docker-dev: docker
 	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):dev
 	docker push $(IMAGE_NAME):dev
 
-release: check test docker
+release: test docker
 	docker push $(IMAGE_NAME):$(GIT_HASH)
 	docker tag $(IMAGE_NAME):$(GIT_HASH) $(IMAGE_NAME):latest
 	docker push $(IMAGE_NAME):latest
