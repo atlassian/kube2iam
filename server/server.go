@@ -123,22 +123,21 @@ func parseRemoteAddr(addr string) string {
 
 func (s *Server) getRole(IP string) (string, error) {
 	var role string
-	var err error
 	operation := func() error {
-		role, err = s.store.Get(IP)
-		return err
+		var ok bool
+		role, ok = s.store.Get(IP)
+		if !ok {
+			return fmt.Errorf("IP address %s not found in store cache", IP)
+		}
+		return nil
 	}
 
 	expBackoff := backoff.NewExponentialBackOff()
 	expBackoff.MaxInterval = s.BackoffMaxInterval
 	expBackoff.MaxElapsedTime = s.BackoffMaxElapsedTime
 
-	err = backoff.Retry(operation, expBackoff)
-	if err != nil {
-		return "", err
-	}
-
-	return role, nil
+	err := backoff.Retry(operation, expBackoff)
+	return role, err
 }
 
 // HealthResponse represents a response for the health check.
@@ -216,7 +215,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 
 	podRole, err := s.getRole(remoteIP)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, err.Error(), http.StatusGatewayTimeout)
 		return
 	}
 
@@ -230,7 +229,7 @@ func (s *Server) roleHandler(logger *log.Entry, w http.ResponseWriter, r *http.R
 
 	if !isAllowed {
 		roleLogger.Warn("Rejected due to namespace restrictions")
-		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusNotFound)
+		http.Error(w, fmt.Sprintf("Role requested %s not valid for namespace of pod at %s with namespace %s", podRole, remoteIP, namespace), http.StatusUnauthorized)
 		return
 	}
 
@@ -277,7 +276,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	model := store.NewStore(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam)
+	model := store.NewStore(s.IAMRoleKey, s.NamespaceRestriction, s.NamespaceKey, s.iam)
 	s.store = model
 	s.k8s.WatchForPods(kube2iam.NewPodHandler(model))
 	s.k8s.WatchForNamespaces(kube2iam.NewNamespaceHandler(model))

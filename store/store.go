@@ -1,7 +1,6 @@
 package store
 
 import (
-	"fmt"
 	"sync"
 
 	log "github.com/Sirupsen/logrus"
@@ -12,7 +11,6 @@ import (
 
 // Store implements the k8s framework ResourceEventHandler interface.
 type Store struct {
-	defaultRole          string
 	IamRoleKey           string
 	NamespaceKey         string
 	namespaceRestriction bool
@@ -24,17 +22,11 @@ type Store struct {
 }
 
 // Get returns the iam role based on IP address.
-func (s *Store) Get(IP string) (string, error) {
+func (s *Store) Get(IP string) (string, bool) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	if role, ok := s.rolesByIP[IP]; ok {
-		return role, nil
-	}
-	if s.defaultRole != "" {
-		log.Warnf("Using fallback role for IP %s", IP)
-		return s.defaultRole, nil
-	}
-	return "", fmt.Errorf("Unable to find role for IP %s", IP)
+	role, ok := s.rolesByIP[IP]
+	return role, ok
 }
 
 // AddRoleToIP caches the role for the given IP address.
@@ -132,11 +124,6 @@ func (s *Store) CheckNamespaceRestriction(role string, ip string) (bool, string)
 		return true, ns
 	}
 
-	// if the role is the default role you are also good
-	if role == s.iam.RoleARN(s.defaultRole) {
-		return true, ns
-	}
-
 	return s.checkRoleForNamespace(role, ns), ns
 }
 
@@ -156,9 +143,8 @@ func (s *Store) DumpNamespaceByIP() map[string]string {
 }
 
 // NewStore returns a new Store for iam roles.
-func NewStore(key string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client) *Store {
+func NewStore(key string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client) *Store {
 	return &Store{
-		defaultRole:          defaultRole,
 		IamRoleKey:           key,
 		NamespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
