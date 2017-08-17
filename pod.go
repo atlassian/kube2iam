@@ -1,8 +1,6 @@
 package kube2iam
 
 import (
-	"sync"
-
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
@@ -12,7 +10,6 @@ import (
 
 // PodHandler represents a pod handler.
 type PodHandler struct {
-	mutex   sync.RWMutex
 	storage *store.Store
 }
 
@@ -63,8 +60,6 @@ func (p *PodHandler) OnUpdate(oldObj, newObj interface{}) {
 
 	if p.shouldUpdate(oldPod, newPod) {
 		logger.Info("Updating pod due to added/updated annotation value or different pod IP")
-		p.mutex.Lock()
-		defer p.mutex.Unlock()
 		p.OnDelete(oldPod)
 		p.OnAdd(newPod)
 	}

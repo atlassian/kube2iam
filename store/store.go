@@ -117,7 +117,9 @@ func (s *Store) checkRoleForNamespace(role string, namespace string) bool {
 
 // CheckNamespaceRestriction checks the namespace restrictions for the current pod.
 func (s *Store) CheckNamespaceRestriction(role string, ip string) (bool, string) {
+	s.mutex.RLock()
 	ns := s.namespaceByIP[ip]
+	s.mutex.RUnlock()
 
 	// if the namespace restrictions are not in place early out true
 	if !s.namespaceRestriction {
