@@ -13,7 +13,6 @@ import (
 
 // RoleProcessor handles relevant logic around associating IPs with a given IAM role
 type RoleProcessor struct {
-	iamRoleKey           string
 	namespaceKey         string
 	namespaceRestriction bool
 	iam                  *iam.Client
@@ -59,10 +58,11 @@ func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 // taking into consideration the appropriate fallback logic and defaulting
 // logic along with the namespace role restrictions
 func (r *RoleProcessor) extractRoleARN(pod *v1.Pod) (string, error) {
-	rawRoleName, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
+	const key = "iam.amazonaws.com/role"
+	rawRoleName, annotationPresent := pod.GetAnnotations()[key]
 
 	if !annotationPresent {
-		return "", fmt.Errorf("no %q annotation present for pod %v", r.iamRoleKey, pod.Status.PodIP)
+		return "", fmt.Errorf("no %q annotation present for pod %v", key, pod.Status.PodIP)
 	}
 
 	return r.iam.RoleARN(rawRoleName), nil
@@ -103,7 +103,7 @@ func (r *RoleProcessor) DumpDebugInfo() map[string]interface{} {
 		// When pods have `hostNetwork: true` they share an IP and we receive an error
 		if pod, err := r.kubeStore.PodByIP(ip); err == nil {
 			namespacesByIP[ip] = pod.Namespace
-			if role, ok := pod.GetAnnotations()[r.iamRoleKey]; ok {
+			if role, ok := pod.GetAnnotations()["iam.amazonaws.com/role"]; ok {
 				rolesByIP[ip] = role
 			} else {
 				rolesByIP[ip] = ""
@@ -138,9 +138,8 @@ func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string 
 }
 
 // NewRoleProcessor returns a new RoleProcessor for use.
-func NewRoleProcessor(roleKey string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
+func NewRoleProcessor(namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
 	return &RoleProcessor{
-		iamRoleKey:           roleKey,
 		namespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,
 		iam:                  iamInstance,

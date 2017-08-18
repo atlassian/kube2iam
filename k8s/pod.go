@@ -10,8 +10,9 @@ import (
 
 // PodHandler represents a pod handler.
 type PodHandler struct {
-	iamRoleKey string
 }
+
+const iamRoleKey = "iam.amazonaws.com/role"
 
 func (p *PodHandler) podFields(pod *v1.Pod) log.Fields {
 	return log.Fields{
@@ -19,7 +20,7 @@ func (p *PodHandler) podFields(pod *v1.Pod) log.Fields {
 		"pod.namespace":    pod.GetNamespace(),
 		"pod.status.ip":    pod.Status.PodIP,
 		"pod.status.phase": pod.Status.Phase,
-		"pod.iam.role":     pod.GetAnnotations()[p.iamRoleKey],
+		"pod.iam.role":     pod.GetAnnotations()[iamRoleKey],
 	}
 }
 
@@ -86,13 +87,4 @@ func isPodActive(p *v1.Pod) bool {
 		v1.PodSucceeded != p.Status.Phase &&
 		v1.PodFailed != p.Status.Phase &&
 		p.DeletionTimestamp == nil
-}
-
-// NewPodHandler constructs a pod handler given the relevant IAM Role Key
-func NewPodHandler(iamRoleKey string) *PodHandler {
-	if iamRoleKey == "" {
-		panic("iamRoleKey is blank")
-	}
-
-	return &PodHandler{iamRoleKey: iamRoleKey}
 }

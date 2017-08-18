@@ -29,7 +29,6 @@ type Server struct {
 	APIToken              string
 	AppPort               string
 	BaseRoleARN           string
-	IAMRoleKey            string
 	MetadataAddress       string
 	HostInterface         string
 	HostIP                string
@@ -250,8 +249,8 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
-	podSynched := s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
+	s.roleProcessor = processor.NewRoleProcessor(s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	podSynched := s.k8s.WatchForPods(new(k8s.PodHandler))
 	namespaceSynched := s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
 
 	var synced bool
