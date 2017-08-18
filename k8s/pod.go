@@ -90,5 +90,9 @@ func isPodActive(p *v1.Pod) bool {
 
 // NewPodHandler constructs a pod handler given the relevant IAM Role Key
 func NewPodHandler(iamRoleKey string) *PodHandler {
+	if iamRoleKey == "" {
+		panic("iamRoleKey is blank")
+	}
+
 	return &PodHandler{iamRoleKey: iamRoleKey}
 }

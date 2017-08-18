@@ -75,21 +75,19 @@ func (k8s *Client) PodByIP(IP string) (*v1.Pod, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	if len(pods) == 0 {
+	switch len(pods) {
+	case 0:
 		return nil, fmt.Errorf("Pod with specificed IP not found")
-	}
-
-	if len(pods) == 1 {
+	case 1:
 		return pods[0].(*v1.Pod), nil
+	default:
+		//This happens with `hostNetwork: true` pods
+		podNames := make([]string, len(pods))
+		for i, pod := range pods {
+			podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
+		}
+		return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 	}
-
-	//This happens with `hostNetwork: true` pods
-	podNames := make([]string, len(pods))
-	for i, pod := range pods {
-		podNames[i] = pod.(*v1.Pod).ObjectMeta.Name
-	}
-	return nil, fmt.Errorf("%d pods (%v) with the ip %s indexed", len(pods), podNames, IP)
 }
 
 // NamespaceByName retrieves a namespace by it's given name.
