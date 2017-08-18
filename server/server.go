@@ -22,16 +22,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-const (
-	defaultAppPort           = "8181"
-	defaultIAMRoleKey        = "iam.amazonaws.com/role"
-	defaultMaxElapsedTime    = 2 * time.Second
-	defaultMaxInterval       = 1 * time.Second
-	defaultMetadataAddress   = "169.254.169.254"
-	defaultNamespaceKey      = "iam.amazonaws.com/allowed-roles"
-	defaultCacheSyncAttempts = 10
-)
-
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
@@ -251,6 +241,8 @@ func write(logger *log.Entry, w http.ResponseWriter, s string) {
 	}
 }
 
+const defaultCacheSyncAttempts = 10
+
 // Run runs the specified Server.
 func (s *Server) Run(host, token string, insecure bool) error {
 	k, err := k8s.NewClient(host, token, insecure)
@@ -290,16 +282,4 @@ func (s *Server) Run(host, token string, insecure bool) error {
 		log.Fatalf("Error creating http server: %+v", err)
 	}
 	return nil
-}
-
-// NewServer will create a new Server with default values.
-func NewServer() *Server {
-	return &Server{
-		AppPort:               defaultAppPort,
-		BackoffMaxElapsedTime: defaultMaxElapsedTime,
-		IAMRoleKey:            defaultIAMRoleKey,
-		BackoffMaxInterval:    defaultMaxInterval,
-		MetadataAddress:       defaultMetadataAddress,
-		NamespaceKey:          defaultNamespaceKey,
-	}
 }
