@@ -18,7 +18,6 @@ func TestExtractRoleARN(t *testing.T) {
 	var roleExtractionTests = []struct {
 		test        string
 		annotations map[string]string
-		defaultRole string
 		expectedARN string
 		expectError bool
 	}{
@@ -32,36 +31,11 @@ func TestExtractRoleARN(t *testing.T) {
 			annotations: map[string]string{roleKey: "explicit-role"},
 			expectedARN: "arn:aws:iam::123456789012:role/explicit-role",
 		},
-		{
-			test:        "Default present, no annotations",
-			annotations: map[string]string{},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
-		},
-		{
-			test:        "Default present, has annotations",
-			annotations: map[string]string{roleKey: "something"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/something",
-		},
-		{
-			test:        "Default present, has full arn annotations",
-			annotations: map[string]string{roleKey: "arn:aws:iam::999999999999:role/explicit-arn"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::999999999999:role/explicit-arn",
-		},
-		{
-			test:        "Default present, has different annotations",
-			annotations: map[string]string{"nonMatchingAnnotation": "something"},
-			defaultRole: "explicit-default-role",
-			expectedARN: "arn:aws:iam::123456789012:role/explicit-default-role",
-		},
 	}
 	for _, tt := range roleExtractionTests {
 		t.Run(tt.test, func(t *testing.T) {
 			rp := RoleProcessor{}
 			rp.iamRoleKey = "roleKey"
-			rp.defaultRoleARN = tt.defaultRole
 			rp.iam = &iam.Client{BaseARN: defaultBaseRole}
 
 			pod := &v1.Pod{}
@@ -88,7 +62,6 @@ func TestCheckRoleForNamespace(t *testing.T) {
 	var roleCheckTests = []struct {
 		test                 string
 		namespaceRestriction bool
-		defaultArn           string
 		namespace            string
 		namespaceAnnotations map[string]string
 		roleARN              string
@@ -100,47 +73,6 @@ func TestCheckRoleForNamespace(t *testing.T) {
 			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
 			namespace:            "default",
 			expectedResult:       true,
-		},
-		{
-			test:                 "Restrictions enabled, default partial",
-			namespaceRestriction: true,
-			defaultArn:           "default-role",
-			roleARN:              "arn:aws:iam::123456789012:role/default-role",
-			expectedResult:       true,
-		},
-		{
-			test:                 "Restrictions enabled, default full arn",
-			namespaceRestriction: true,
-			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
-			roleARN:              "arn:aws:iam::123456789012:role/default-role",
-			expectedResult:       true,
-		},
-		{
-			test:                 "Restrictions enabled, partial arn in annotation",
-			namespaceRestriction: true,
-			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
-			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
-			namespace:            "default",
-			namespaceAnnotations: map[string]string{namespaceKey: "[\"explicit-role\"]"},
-			expectedResult:       true,
-		},
-		{
-			test:                 "Restrictions enabled, full arn in annotation",
-			namespaceRestriction: true,
-			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
-			roleARN:              "arn:aws:iam::123456789012:role/explicit-role",
-			namespace:            "default",
-			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
-			expectedResult:       true,
-		},
-		{
-			test:                 "Restrictions enabled, full arn not in annotation",
-			namespaceRestriction: true,
-			defaultArn:           "arn:aws:iam::123456789012:role/default-role",
-			roleARN:              "arn:aws:iam::123456789012:role/test-role",
-			namespace:            "default",
-			namespaceAnnotations: map[string]string{namespaceKey: "[\"arn:aws:iam::123456789012:role/explicit-role\"]"},
-			expectedResult:       false,
 		},
 		{
 			test:                 "Restrictions enabled, no annotations",
@@ -156,7 +88,6 @@ func TestCheckRoleForNamespace(t *testing.T) {
 		t.Run(tt.test, func(t *testing.T) {
 			rp := NewRoleProcessor(
 				roleKey,
-				tt.defaultArn,
 				tt.namespaceRestriction,
 				namespaceKey,
 				&iam.Client{BaseARN: defaultBaseRole},

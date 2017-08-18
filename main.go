@@ -15,9 +15,8 @@ import (
 
 const (
 	defaultAppPort         = "8181"
-	defaultIAMRole         = "iam.amazonaws.com/role"
-	defaultMaxInterval     = 1 * time.Second
-	defaultMaxElapsedTime  = 2 * time.Second
+	defaultMaxInterval     = 2 * time.Second
+	defaultMaxElapsedTime  = 30 * time.Second
 	defaultMetadataAddress = "169.254.169.254"
 	defaultNamespaceKey    = "iam.amazonaws.com/allowed-roles"
 )
@@ -29,13 +28,11 @@ func addFlags(s *server.Server, fs *pflag.FlagSet) {
 	fs.StringVar(&s.AppPort, "app-port", defaultAppPort, "Http port")
 	fs.StringVar(&s.BaseRoleARN, "base-role-arn", s.BaseRoleARN, "Base role ARN")
 	fs.BoolVar(&s.Debug, "debug", s.Debug, "Enable debug features")
-	fs.StringVar(&s.DefaultIAMRole, "default-role", defaultIAMRole, "Fallback role to use when annotation is not set")
 	fs.StringVar(&s.IAMRoleKey, "iam-role-key", s.IAMRoleKey, "Pod annotation key used to retrieve the IAM role")
 	fs.BoolVar(&s.Insecure, "insecure", false, "Kubernetes server should be accessed without verifying the TLS. Testing only")
 	fs.StringVar(&s.MetadataAddress, "metadata-addr", defaultMetadataAddress, "Address for the ec3 metadata")
 	fs.BoolVar(&s.AddIPTablesRule, "iptables", false, "Add iptables rule (also requires --host-ip)")
 	fs.BoolVar(&s.AutoDiscoverBaseArn, "auto-discover-base-arn", false, "Queries EC2 Metadata to determine the base ARN")
-	fs.BoolVar(&s.AutoDiscoverDefaultRole, "auto-discover-default-role", false, "Queries EC2 Metadata to determine the default Iam Role and base ARN, cannot be used with --default-role, overwrites any previous setting for --base-role-arn")
 	fs.StringVar(&s.HostInterface, "host-interface", "docker0", "Host interface for proxying AWS metadata")
 	fs.BoolVar(&s.NamespaceRestriction, "namespace-restrictions", false, "Enable namespace restrictions")
 	fs.StringVar(&s.NamespaceKey, "namespace-key", defaultNamespaceKey, "Namespace annotation key used to retrieve the IAM roles allowed (value in annotation should be json array)")
@@ -79,23 +76,6 @@ func main() {
 		}
 		log.Infof("base ARN autodetected, %s", arn)
 		s.BaseRoleARN = arn
-	}
-
-	if s.AutoDiscoverDefaultRole {
-		if s.DefaultIAMRole != "" {
-			log.Fatalf("You cannot use --default-role and --auto-discover-default-role at the same time")
-		}
-		arn, err := iam.GetBaseArn()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-		s.BaseRoleARN = arn
-		instanceIAMRole, err := iam.GetInstanceIAMRole()
-		if err != nil {
-			log.Fatalf("%s", err)
-		}
-		s.DefaultIAMRole = instanceIAMRole
-		log.Infof("Using instance IAMRole %s%s as default", s.BaseRoleARN, s.DefaultIAMRole)
 	}
 
 	if s.AddIPTablesRule {

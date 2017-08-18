@@ -13,7 +13,6 @@ import (
 
 // RoleProcessor handles relevant logic around associating IPs with a given IAM role
 type RoleProcessor struct {
-	defaultRoleARN       string
 	iamRoleKey           string
 	namespaceKey         string
 	namespaceRestriction bool
@@ -62,13 +61,8 @@ func (r *RoleProcessor) GetRoleMapping(IP string) (*RoleMappingResult, error) {
 func (r *RoleProcessor) extractRoleARN(pod *v1.Pod) (string, error) {
 	rawRoleName, annotationPresent := pod.GetAnnotations()[r.iamRoleKey]
 
-	if !annotationPresent && r.defaultRoleARN == "" {
-		return "", fmt.Errorf("Unable to find role for IP %s", pod.Status.PodIP)
-	}
-
 	if !annotationPresent {
-		log.Warnf("Using fallback role for IP %s", pod.Status.PodIP)
-		rawRoleName = r.defaultRoleARN
+		return "", fmt.Errorf("no %q annotation present for pod %v", r.iamRoleKey, pod.Status.PodIP)
 	}
 
 	return r.iam.RoleARN(rawRoleName), nil
@@ -77,7 +71,7 @@ func (r *RoleProcessor) extractRoleARN(pod *v1.Pod) (string, error) {
 // checkRoleForNamespace checks the 'database' for a role allowed in a namespace,
 // returns true if the role is found, otheriwse false
 func (r *RoleProcessor) checkRoleForNamespace(roleArn string, namespace string) bool {
-	if !r.namespaceRestriction || roleArn == r.defaultRoleARN {
+	if !r.namespaceRestriction {
 		return true
 	}
 
@@ -144,9 +138,8 @@ func GetNamespaceRoleAnnotation(ns *v1.Namespace, namespaceKey string) []string 
 }
 
 // NewRoleProcessor returns a new RoleProcessor for use.
-func NewRoleProcessor(roleKey string, defaultRole string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
+func NewRoleProcessor(roleKey string, namespaceRestriction bool, namespaceKey string, iamInstance *iam.Client, kubeStore kubeStore) *RoleProcessor {
 	return &RoleProcessor{
-		defaultRoleARN:       iamInstance.RoleARN(defaultRole),
 		iamRoleKey:           roleKey,
 		namespaceKey:         namespaceKey,
 		namespaceRestriction: namespaceRestriction,

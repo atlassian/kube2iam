@@ -25,29 +25,27 @@ import (
 // Server encapsulates all of the parameters necessary for starting up
 // the server. These can either be set via command line or directly.
 type Server struct {
-	APIServer               string
-	APIToken                string
-	AppPort                 string
-	BaseRoleARN             string
-	DefaultIAMRole          string
-	IAMRoleKey              string
-	MetadataAddress         string
-	HostInterface           string
-	HostIP                  string
-	NamespaceKey            string
-	AddIPTablesRule         bool
-	AutoDiscoverBaseArn     bool
-	AutoDiscoverDefaultRole bool
-	Debug                   bool
-	Insecure                bool
-	NamespaceRestriction    bool
-	Verbose                 bool
-	Version                 bool
-	iam                     *iam.Client
-	k8s                     *k8s.Client
-	roleProcessor           *processor.RoleProcessor
-	BackoffMaxElapsedTime   time.Duration
-	BackoffMaxInterval      time.Duration
+	APIServer             string
+	APIToken              string
+	AppPort               string
+	BaseRoleARN           string
+	IAMRoleKey            string
+	MetadataAddress       string
+	HostInterface         string
+	HostIP                string
+	NamespaceKey          string
+	AddIPTablesRule       bool
+	AutoDiscoverBaseArn   bool
+	Debug                 bool
+	Insecure              bool
+	NamespaceRestriction  bool
+	Verbose               bool
+	Version               bool
+	iam                   *iam.Client
+	k8s                   *k8s.Client
+	roleProcessor         *processor.RoleProcessor
+	BackoffMaxElapsedTime time.Duration
+	BackoffMaxInterval    time.Duration
 }
 
 type appHandler func(*log.Entry, http.ResponseWriter, *http.Request)
@@ -251,7 +249,7 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	}
 	s.k8s = k
 	s.iam = iam.NewClient(s.BaseRoleARN)
-	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.DefaultIAMRole, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
+	s.roleProcessor = processor.NewRoleProcessor(s.IAMRoleKey, s.NamespaceRestriction, s.NamespaceKey, s.iam, s.k8s)
 	podSynched := s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
 
