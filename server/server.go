@@ -115,6 +115,7 @@ func (s *Server) getRoleMapping(IP string) (*processor.RoleMappingResult, error)
 	operation := func() error {
 		var err error
 		roleMapping, err = s.roleProcessor.GetRoleMapping(IP)
+		log.WithField("ip", IP).Warnf("Could not find role: %v", err)
 		return err
 	}
 
@@ -253,16 +254,15 @@ func (s *Server) Run(host, token string, insecure bool) error {
 	podSynched := s.k8s.WatchForPods(k8s.NewPodHandler(s.IAMRoleKey))
 	namespaceSynched := s.k8s.WatchForNamespaces(k8s.NewNamespaceHandler(s.NamespaceKey))
 
-	synced := false
+	var synced bool
 	for i := 0; i < defaultCacheSyncAttempts && !synced; i++ {
 		synced = cache.WaitForCacheSync(nil, podSynched, namespaceSynched)
 	}
 
 	if !synced {
 		log.Fatalf("Attempted to wait for caches to be synced for [%d] however it is not done.  Giving up.", defaultCacheSyncAttempts)
-	} else {
-		log.Debugln("Caches have been synced.  Proceeding with server.")
 	}
+	log.Debugln("Caches have been synced.  Proceeding with server.")
 
 	r := mux.NewRouter()
 

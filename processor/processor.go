@@ -17,7 +17,7 @@ type RoleProcessor struct {
 	namespaceKey         string
 	namespaceRestriction bool
 	iam                  *iam.Client
-	kubeStore            kubeStore
+	kubeStore
 }
 
 type kubeStore interface {

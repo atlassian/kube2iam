@@ -28,16 +28,11 @@ type Client struct {
 	namespaceController cache.Controller
 }
 
-// Returns a cache.ListWatch that gets all changes to pods.
-func (k8s *Client) createPodLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fields.Everything())
-}
-
 // WatchForPods watches for pod changes.
 func (k8s *Client) WatchForPods(podEventLogger cache.ResourceEventHandler) cache.InformerSynced {
 	k8s.podIndexer, k8s.podController = cache.NewIndexerInformer(
-		k8s.createPodLW(),
-		&v1.Pod{},
+		cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "pods", v1.NamespaceAll, fields.Everything()),
+		new(v1.Pod),
 		resyncPeriod,
 		podEventLogger,
 		cache.Indexers{podIPIndexName: podIPIndexFunc},
@@ -46,16 +41,11 @@ func (k8s *Client) WatchForPods(podEventLogger cache.ResourceEventHandler) cache
 	return k8s.podController.HasSynced
 }
 
-// returns a cache.ListWatch of namespaces.
-func (k8s *Client) createNamespaceLW() *cache.ListWatch {
-	return cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, fields.Everything())
-}
-
 // WatchForNamespaces watches for namespaces changes.
 func (k8s *Client) WatchForNamespaces(nsEventLogger cache.ResourceEventHandler) cache.InformerSynced {
 	k8s.namespaceIndexer, k8s.namespaceController = cache.NewIndexerInformer(
-		k8s.createNamespaceLW(),
-		&v1.Namespace{},
+		cache.NewListWatchFromClient(k8s.CoreV1().RESTClient(), "namespaces", v1.NamespaceAll, fields.Everything()),
+		new(v1.Namespace),
 		resyncPeriod,
 		nsEventLogger,
 		cache.Indexers{namespaceIndexName: namespaceIndexFunc},
@@ -139,7 +129,5 @@ func NewClient(host, token string, insecure bool) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	k8s := &Client{}
-	k8s.Clientset = client
-	return k8s, nil
+	return &Client{Clientset: client}, nil
 }
